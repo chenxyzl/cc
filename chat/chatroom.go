@@ -14,13 +14,13 @@ const userJoin = "[join room]"
 const userLeave = "[leave room]"
 
 type JoinEvent struct {
-	uid  UUID
+	uid  UID
 	name string
 	sub  chan Subscription
 }
 
 type User struct {
-	uid       UUID
+	uid       UID
 	name      string
 	event     chan Event
 	loginTIme int64
@@ -28,24 +28,24 @@ type User struct {
 
 // 聊天室
 type Room struct {
-	users      map[UUID]User     // 当前房间订阅者
-	userCount  int               // 当前房间总人数
-	publishChn chan Event        // 聊天室的消息推送入口
-	msgList    *list.List        // 历史记录 todo 未持久化 重启失效
-	msgChan    chan chan []Event // 通过接受chan来同步聊天内容
-	joinChan   chan JoinEvent    // 接收订阅事件的通道 用户加入聊天室后要把历史事件推送给用户
-	leaveChn   chan UUID         // 用户取消订阅通道 把通道中的历史事件释放并把用户从聊天室用户列表中删除
+	users      map[UID]User
+	userCount  int
+	publishChn chan Event
+	msgList    *list.List
+	msgChan    chan chan []Event
+	joinChan   chan JoinEvent
+	leaveChn   chan UID
 }
 
 func NewRoom() *Room {
 	r := &Room{
-		users:      make(map[UUID]User),
+		users:      make(map[UID]User),
 		publishChn: make(chan Event, chanSize),
 		msgChan:    make(chan chan []Event, chanSize),
 		msgList:    list.New(),
 
 		joinChan: make(chan JoinEvent, chanSize),
-		leaveChn: make(chan UUID, chanSize),
+		leaveChn: make(chan UID, chanSize),
 	}
 
 	go r.Serve()
@@ -55,25 +55,13 @@ func NewRoom() *Room {
 
 // 用来向聊天室发送用户消息
 // 这些接口供非websocket连接方式调用
-func (r *Room) MsgJoin(user string) {
-	r.publishChn <- NewEvent(EventTypeJoin, user, userJoin)
-}
-
-func (r *Room) MsgSay(user, message string) {
-	r.publishChn <- NewEvent(EventTypeMsg, user, message)
-}
-
-func (r *Room) MsgLeave(user string) {
-	r.publishChn <- NewEvent(EventTypeLeave, user, userLeave)
-}
-
-func (r *Room) Remove(id UUID) {
-	r.leaveChn <- id // 将用户从聊天室列表中移除
+func (r *Room) MsgJoin(user string, uid UID) {
+	r.publishChn <- NewEvent(EventTypeJoin, user, uid, userJoin)
 }
 
 // 用户订阅聊天室入口函数
 // 返回用户订阅的对象，用户根据对象中的属性读取历史消息和即时消息
-func (r *Room) Join(username string, uid UUID) Subscription {
+func (r *Room) Join(username string, uid UID) Subscription {
 	resp := make(chan Subscription)
 	r.joinChan <- JoinEvent{
 		sub:  resp,
@@ -110,7 +98,7 @@ func (r *Room) Serve() {
 				EmitCHn:  r.publishChn,
 				LeaveChn: r.leaveChn,
 			}
-			ev := NewEvent(EventTypeSystem, "", "")
+			ev := NewEvent(EventTypeSystem, ch.name, ch.uid, userJoin)
 			for _, v := range r.users {
 				v.event <- ev
 			}
@@ -123,6 +111,9 @@ func (r *Room) Serve() {
 			arch <- events
 		// 有新的消息
 		case event := <-r.publishChn:
+			if res, ok := dealIfCommand(event.Text, event.Uid); ok {
+				r.users[event.Uid].event <- NewEvent(EventTypeSystem, event.User, event.Uid, res)
+			}
 			//replace bad world
 			analysis.AddWorldFrequency(event.Text)
 			event.Text = analysis.ReplaceBadWord(event.Text, '*')
@@ -142,7 +133,7 @@ func (r *Room) Serve() {
 				return
 			}
 			delete(r.users, k)
-			ev := NewEvent(EventTypeSystem, u.name, userLeave)
+			ev := NewEvent(EventTypeSystem, u.name, u.uid, userLeave)
 			for _, v := range r.users {
 				v.event <- ev
 			}

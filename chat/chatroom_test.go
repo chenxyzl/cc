@@ -10,24 +10,24 @@ func TestJoin(t *testing.T) {
 
 	room := NewRoom()
 
-	jack := room.Join("jack", 1)
+	a := room.Join("a", 1)
 	go func() {
-		for v := range jack.Pipe {
+		for v := range a.Pipe {
 			fmt.Println(v)
 		}
 	}()
 
-	tom := room.Join("Tom", 2)
+	b := room.Join("b", 2)
 	go func() {
-		for v := range tom.Pipe {
+		for v := range b.Pipe {
 			fmt.Println(v)
 		}
 	}()
-	jack.Say("hello world")
-	tom.Say("nice to meet U")
+	a.Say("aa")
+	b.Say("bb")
 
-	jack.Leave()
-	tom.Leave()
+	a.Leave()
+	b.Leave()
 	time.Sleep(1 * time.Second)
 
 }

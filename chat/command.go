@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"lin/analysis"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -19,8 +20,12 @@ var commands = []command{
 	&stats{},
 }
 
-func init() {
+var commandMaping = make(map[string]command)
 
+func init() {
+	for _, v := range commands {
+		commandMaping[v.name()] = v
+	}
 }
 
 // help
@@ -72,16 +77,35 @@ func formatOutTime(dut int64) string {
 }
 
 func (c *stats) run(param ...string) string {
-	if len(param) != 1 {
-		return "param error, param len != 1"
+	if len(param) != 2 {
+		return "param error, param len != 2"
 	}
-	uid, err := strconv.Atoi(param[0])
-	if err != nil {
-		return err.Error()
+
+	var uid UID
+	//todo 正常应该多维护一个name到uid的映射，这里没有所以直接遍历了
+	for _, v := range WorldRoom.users {
+		if v.name == param[1] {
+			uid = v.uid
+			break
+		}
 	}
-	u, ok := WorldRoom.users[UUID(uid)]
+
+	u, ok := WorldRoom.users[uid]
 	if !ok {
 		return "user not found"
 	}
 	return formatOutTime(time.Now().Unix() - u.loginTIme)
+}
+
+func dealIfCommand(text string, uid UID) (string, bool) {
+	if strings.Index(text, "/") != 0 {
+		return "", false
+	}
+	text = strings.Trim(text, " ")
+	params := strings.Split(text, " ")
+	if v, ok := commandMaping[params[0]]; !ok {
+		return "command not found", true
+	} else {
+		return v.run(append([]string{strconv.Itoa(int(uid))}, params[1:]...)...), true
+	}
 }

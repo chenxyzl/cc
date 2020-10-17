@@ -45,7 +45,8 @@ func WriteMessage(conn *websocket.Conn, v chat.Event) error {
 }
 
 func webSocket(ws *websocket.Conn) {
-	WriteMessage(ws, chat.NewEvent("system", "room manager", "please input your name"))
+	var uid = chat.UID(uuid.GenUUID())
+	WriteMessage(ws, chat.NewEvent("system", "room manager", uid, "please input your name"))
 	var firstMessage = Message{}
 	err := ReadMessage(ws, &firstMessage)
 	if err != nil {
@@ -54,9 +55,8 @@ func webSocket(ws *websocket.Conn) {
 
 	// get user name
 	var name = firstMessage.Msg
-	var uid = chat.UUID(uuid.GenUUID())
 	evs := chat.WorldRoom.GetHistoryMsg()
-	chat.WorldRoom.MsgJoin(name)
+	chat.WorldRoom.MsgJoin(name, uid)
 	control := chat.WorldRoom.Join(name, uid)
 	defer control.Leave()
 

@@ -1,7 +1,7 @@
 package chat
 
 // user uuid
-type UUID uint64
+type UID uint64
 
 const (
 	EventTypeMsg    = "event-msg"    // 用户发言
@@ -16,23 +16,25 @@ type Event struct {
 	User      string `json:"user"`      // 用户名
 	Text      string `json:"text"`      // 事件内容
 	UserCount int    `json:"userCount"` // 房间用户数
+	Uid       UID
 }
 
-func NewEvent(typ string, user, msg string) Event {
+func NewEvent(typ string, user string, uid UID, msg string) Event {
 	return Event{
-		Type:      typ,
-		User:      user,
-		Text:      msg,
+		Type: typ,
+		User: user,
+		Text: msg,
+		Uid:  uid,
 	}
 }
 
 // 用户订阅
 type Subscription struct {
-	Id       UUID         // 用户在聊天室中的ID
+	Id       UID          // 用户在聊天室中的ID
 	Username string       // 用户名
 	Pipe     <-chan Event // 事件接收通道 用户从这个通道接收消息
 	EmitCHn  chan Event   // 用户消息推送通道
-	LeaveChn chan UUID    // 用户离开事件推送
+	LeaveChn chan UID     // 用户离开事件推送
 }
 
 func (s *Subscription) Leave() {
@@ -40,5 +42,5 @@ func (s *Subscription) Leave() {
 }
 
 func (s *Subscription) Say(message string) {
-	s.EmitCHn <- NewEvent(EventTypeMsg, s.Username, message)
+	s.EmitCHn <- NewEvent(EventTypeMsg, s.Username, s.Id, message)
 }
