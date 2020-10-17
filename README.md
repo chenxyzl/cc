@@ -28,3 +28,5 @@ for cc chat test
 #扩展性
 预留了很多,未完善的也有很多[如rpc注册分发，抽出server(目前UserManger承担了这个职能)， gate，持久化-分布式注册发现等--计划做，被别的事情耽误了]
 
+#客户端技术
+cocos create 2.2
