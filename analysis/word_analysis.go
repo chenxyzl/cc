@@ -4,8 +4,10 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"lin/util"
 	"lin/util/words"
 	"os"
+	"path"
 	"strconv"
 	"strings"
 	"time"
@@ -36,9 +38,10 @@ func (w *worldFrequency) check(t int64) {
 var worldsFrequency = make(map[string]*worldFrequency)
 
 func init() {
-	fmt.Println("读取badwords.txt")
-	//file, err := os.Open(`../data/badwords.txt`) //fot test
-	file, err := os.Open(`./data/badwords.txt`) //for normal
+	p, _ := util.GetCurrentPath()
+	p = path.Join(p, "../data/badwords.txt")
+	fmt.Println("读取:" + p)
+	file, err := os.Open(p) //for normal
 	if err != nil {
 		panic(err)
 	}
@@ -80,7 +83,14 @@ func GetWorldsFrequencyStatistics() []string {
 		for _, o := range world.frequency {
 			times += o
 		}
+		if times == 0 {
+			delete(worldsFrequency, k)
+			continue
+		}
 		out = append(out, k+":"+strconv.Itoa(times))
+	}
+	if len(out) == 0 {
+		out = append(out, fmt.Sprintf("最近%ds无流行词汇", step))
 	}
 	return out
 }
