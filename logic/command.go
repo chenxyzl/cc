@@ -1,8 +1,9 @@
-package chat
+package logic
 
 import (
 	"fmt"
 	"lin/analysis"
+	"lin/framework/uuid"
 	"strconv"
 	"strings"
 	"time"
@@ -81,7 +82,7 @@ func (c *stats) run(param ...string) string {
 		return "param error, param len != 2"
 	}
 
-	var uid UID
+	var uid uuid.UID
 	//todo 正常应该多维护一个name到uid的映射，这里没有所以直接遍历了
 	for _, v := range WorldRoom.users {
 		if v.name == param[1] {
@@ -97,7 +98,7 @@ func (c *stats) run(param ...string) string {
 	return formatOutTime(time.Now().Unix() - u.loginTIme)
 }
 
-func dealIfCommand(text string, uid UID) (string, bool) {
+func dealIfCommand(text string, uid uuid.UID) (string, bool) {
 	if strings.Index(text, "/") != 0 {
 		return "", false
 	}

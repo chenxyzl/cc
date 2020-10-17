@@ -28,6 +28,12 @@ const (
 | 42 Bit Timestamp | 14 Bit WorkID | 8 Bit Sequence ID |
 +-----------------------------------------------------------+
 */
+// user uuid
+type UID uint64
+
+func (u UID) Int64() uint64 {
+	return uint64(u)
+}
 
 const (
 	nodeBits  uint8  = 14                    // 节点 ID 的位数
@@ -96,7 +102,7 @@ func (n *UUID) Generate() uint64 {
 var mtx sync.Mutex
 var node *UUID
 
-func GenUUID() uint64 {
+func GenUUID() UID {
 	if node == nil { //双检查 避免加锁影响性能
 		mtx.Lock()
 		if node == nil {
@@ -108,5 +114,5 @@ func GenUUID() uint64 {
 		}
 		mtx.Unlock()
 	}
-	return node.Generate()
+	return UID(node.Generate())
 }

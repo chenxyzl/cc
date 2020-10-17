@@ -1,4 +1,4 @@
-package chat
+package logic
 
 // WorldRoom
 var WorldRoom = NewRoom()

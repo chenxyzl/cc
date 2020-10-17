@@ -1,12 +1,13 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"golang.org/x/net/websocket"
-	"lin/chat"
 	"lin/framework/uuid"
+	"lin/logic"
+	"lin/msg_dispatcher"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -25,78 +26,43 @@ func index(w http.ResponseWriter, r *http.Request) {
 	http.ServeFile(w, r, "index.html")
 }
 
-func ReadMessage(ws *websocket.Conn, v *Message) error {
-	var data string
-	err := websocket.Message.Receive(ws, &data)
-	if err != nil {
-		return err
-	}
-	return json.Unmarshal([]byte(data), v)
-}
-
-func WriteMessage(conn *websocket.Conn, v chat.Event) error {
-	data, err := json.Marshal(v)
-	if err != nil {
-		fmt.Println(err)
-		return err
-	}
-	_, err = conn.Write(data)
-	return err
-}
-
 func webSocket(ws *websocket.Conn) {
-	var uid = chat.UID(uuid.GenUUID())
-	WriteMessage(ws, chat.NewEvent("system", "room manager", uid, "please input your name"))
+	var uid = uuid.GenUUID()
+	WriteMessage(ws, msg_dispatcher.CommonRet{User: "system", Text: "welcome:" + strconv.Itoa(time.Now().Second()),})
 	var firstMessage = Message{}
 	err := ReadMessage(ws, &firstMessage)
 	if err != nil {
 		return
 	}
-
 	// get user name
 	var name = firstMessage.Msg
-	evs := chat.WorldRoom.GetHistoryMsg()
-	chat.WorldRoom.MsgJoin(name, uid)
-	control := chat.WorldRoom.Join(name, uid)
-	defer control.Leave()
 
-	// history msg
-	for _, event := range evs {
-		if WriteMessage(ws, event) != nil {
-			// 用户断开连接
-			return
-		}
-	}
+	logic.UserMgr.ProcessMessage(logic.Event{
+		Type: msg_dispatcher.KEventTypeAddUser,
+		Uid:  uid,
+		Conn: ws,
+		Body: name,
+	})
+
+	defer logic.UserMgr.ProcessMessage(logic.Event{
+		Type: msg_dispatcher.KEventTypeRemoveUser,
+		Uid:  uid,
+		Conn: ws,
+		Body: name,
+	})
 
 	// read message
-	inMsg := make(chan Message)
-	go func() {
-		for {
-			in := Message{}
-			err := ReadMessage(ws, &in)
-			if err != nil {
-				// close chan
-				close(inMsg)
-				return
-			}
-			inMsg <- in
-		}
-	}()
-
-	//send message
 	for {
-		select {
-		case event := <-control.Pipe:
-			if WriteMessage(ws, event) != nil {
-				// 用户断开连接
-				return
-			}
-		case msg, ok := <-inMsg:
-			// close message
-			if !ok {
-				return
-			}
-			control.Say(msg.Msg)
+		in := Message{}
+		err := ReadMessage(ws, &in)
+		if err != nil {
+			return
 		}
+		logic.UserMgr.ProcessMessage(logic.Event{
+			Type: msg_dispatcher.KEventTypeChat,
+			Uid:  uid,
+			Conn: ws,
+			Body: in.Msg,
+		})
 	}
 }
