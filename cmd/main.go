@@ -17,7 +17,7 @@ type Message struct {
 
 func main() {
 	fmt.Println("server start ", time.Now())
-	http.HandleFunc("/", index)
+	http.Handle("/", http.FileServer(http.Dir("../static")))
 	http.Handle("/ws", websocket.Handler(webSocket))
 	http.ListenAndServe(":9001", nil)
 }
