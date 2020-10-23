@@ -19,7 +19,7 @@ func main() {
 	fmt.Println("server start ", time.Now())
 	http.Handle("/", http.FileServer(http.Dir("../static")))
 	http.Handle("/ws", websocket.Handler(webSocket))
-	http.ListenAndServe(":9001", nil)
+	http.ListenAndServe(":13001", nil)
 }
 
 func index(w http.ResponseWriter, r *http.Request) {
