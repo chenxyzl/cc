@@ -1,7 +1,10 @@
-all: deps
+all: deps build
 
-
+export GOPROXY=https://goproxy.cn
 deps:
-	GOOS=windows go build -o ../bin/chat.exe
-	GOOS=linux go build -o ../bin/chat
-	GOOS=darwin go build -o ../bin/chat_mac
+        go mod download
+
+build:
+        GOOS=windows go build -o ../bin/chat.exe
+        GOOS=linux go build -o ../bin/chat
+        GOOS=darwin go build -o ../bin/chat_mac
