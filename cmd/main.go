@@ -19,16 +19,15 @@ func main() {
 	fmt.Println("server start ", time.Now())
 	http.Handle("/", http.FileServer(http.Dir("../static")))
 	http.Handle("/ws", websocket.Handler(webSocket))
-	http.ListenAndServe(":13001", nil)
-}
-
-func index(w http.ResponseWriter, r *http.Request) {
-	http.ServeFile(w, r, "index.html")
+	err := http.ListenAndServe(":33001", nil)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func webSocket(ws *websocket.Conn) {
 	var uid = uuid.GenUUID()
-	WriteMessage(ws, msg_dispatcher.CommonRet{User: "system", Text: "welcome:" + strconv.Itoa(time.Now().Second()),})
+	WriteMessage(ws, msg_dispatcher.CommonRet{User: "system", Text: "welcome:" + strconv.Itoa(time.Now().Second())})
 	var firstMessage = Message{}
 	err := ReadMessage(ws, &firstMessage)
 	if err != nil {
